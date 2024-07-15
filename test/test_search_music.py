@@ -47,7 +47,7 @@ class TestAddMusic(unittest.TestCase):
         url = f'{cls.testrail_url}add_run/{cls.project_id}'
         data = {
             "suite_id": cls.plan_id,
-            "name": "Test Run - Agregar funcionalidad musical",
+            "name": "Test Run - Search Music Functionality",
             "description": "Ejecución de prueba automatizada para agregar funcionalidad de música",
             "include_all": True
         }
@@ -78,26 +78,20 @@ class TestAddMusic(unittest.TestCase):
         else:
             print(f'Resultado enviado para el caso {case_id}')
 
-    def test_add_song_to_playlist(self):
-        case_id = 7  # Actualiza con el ID del caso de prueba en TestRail
+    def test_song_found(self):
+        case_id = 14  # Actualiza con el ID del caso de prueba en TestRail
         try:
             self.driver.get('http://localhost:5000/search')
 
             search_box = self.driver.find_element(By.NAME, 'song_name')
-            search_box.send_keys('I Still Miss Someone')
+            search_box.send_keys('Shape of You')
             search_box.send_keys(Keys.RETURN)
 
-            # Esperamos a que el botón "Like" sea visible y luego lo hacemos clic:
-            like_button = WebDriverWait(self.driver, 20).until(
-                EC.element_to_be_clickable((By.XPATH, "//button[text()='Like']"))
-            )
-            like_button.click()
-
-            # Esperamos a que aparezca el mensaje de éxito y verificamos su texto:
+            # Esperamos a que el mensaje de éxito sea visible
             success_message = WebDriverWait(self.driver, 20).until(
-                EC.visibility_of_element_located((By.CLASS_NAME, 'alert-message'))
+                EC.visibility_of_element_located((By.CLASS_NAME, 'alert-success'))
             )
-            self.assertIn('Canción agregada a tu lista de reproducción exitosamente.', success_message.text)
+            self.assertIn('Canción encontrada.', success_message.text)
             self.send_result_to_testrail(case_id, 1, 'Prueba exitosa')
 
         except TimeoutException:
@@ -106,27 +100,25 @@ class TestAddMusic(unittest.TestCase):
             self.send_result_to_testrail(case_id, 5, 'El mensaje de éxito no apareció a tiempo')
             self.fail("El mensaje de éxito no apareció a tiempo")
 
+        except Exception as e:
+            # Registrar cualquier otra excepción
+            self.send_result_to_testrail(case_id, 5, str(e))
+            raise
 
-    def test_add_existing_song_to_playlist(self):
-        case_id = 8  # Actualiza con el ID del caso de prueba en TestRail
+    def test_song_not_found(self):
+        case_id = 15  # Actualiza con el ID del caso de prueba en TestRail
         try:
             self.driver.get('http://localhost:5000/search')
 
             search_box = self.driver.find_element(By.NAME, 'song_name')
-            search_box.send_keys('Shape of You')
+            search_box.send_keys('##48es')
             search_box.send_keys(Keys.RETURN)
 
-            # Esperamos a que el botón "Like" sea visible y luego lo hacemos clic:
-            like_button = WebDriverWait(self.driver, 20).until(
-                EC.element_to_be_clickable((By.XPATH, "//button[text()='Like']"))
-            )
-            like_button.click()
-
-            # Esperamos a que aparezca el mensaje de error y verificamos su texto:
+            # Esperamos a que el mensaje de error sea visible
             error_message = WebDriverWait(self.driver, 20).until(
-                EC.visibility_of_element_located((By.CLASS_NAME, 'alert-message'))
+                EC.visibility_of_element_located((By.CLASS_NAME, 'alert-error'))
             )
-            self.assertIn('Esta canción ya está en tu lista de reproducción.', error_message.text)
+            self.assertIn('No se encontró la canción.', error_message.text)
             self.send_result_to_testrail(case_id, 1, 'Prueba exitosa')
 
         except TimeoutException:
@@ -135,6 +127,10 @@ class TestAddMusic(unittest.TestCase):
             self.send_result_to_testrail(case_id, 5, 'El mensaje de error no apareció a tiempo')
             self.fail("El mensaje de error no apareció a tiempo")
 
+        except Exception as e:
+            # Registrar cualquier otra excepción
+            self.send_result_to_testrail(case_id, 5, str(e))
+            raise
 
 if __name__ == '__main__':
     unittest.main()

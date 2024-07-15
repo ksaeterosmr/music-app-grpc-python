@@ -1,16 +1,16 @@
 import unittest
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.keys import Keys
 import requests
 import json
 import os
 from dotenv import load_dotenv
 
-class TestAddMusic(unittest.TestCase):
+class TestDeleteMusic(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -47,8 +47,8 @@ class TestAddMusic(unittest.TestCase):
         url = f'{cls.testrail_url}add_run/{cls.project_id}'
         data = {
             "suite_id": cls.plan_id,
-            "name": "Test Run - Agregar funcionalidad musical",
-            "description": "Ejecución de prueba automatizada para agregar funcionalidad de música",
+            "name": "Test Run - Eliminar funcionalidad de música",
+            "description": "Ejecución de prueba automatizada para la funcionalidad de eliminación de música",
             "include_all": True
         }
         response = requests.post(url, auth=(cls.testrail_user, cls.testrail_password), headers={'Content-Type': 'application/json'}, data=json.dumps(data))
@@ -78,26 +78,46 @@ class TestAddMusic(unittest.TestCase):
         else:
             print(f'Resultado enviado para el caso {case_id}')
 
-    def test_add_song_to_playlist(self):
-        case_id = 7  # Actualiza con el ID del caso de prueba en TestRail
+    def add_test_song_to_playlist(self):
+        self.driver.get('http://localhost:5000/search')
+
+        search_box = self.driver.find_element(By.NAME, 'song_name')
+        search_box.send_keys('Shape of You')
+        search_box.send_keys(Keys.RETURN)
+
+        like_button = WebDriverWait(self.driver, 20).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[text()='Like']"))
+        )
+        like_button.click()
+
+        success_message = WebDriverWait(self.driver, 20).until(
+            EC.visibility_of_element_located((By.CLASS_NAME, 'alert-message'))
+        )
+        self.assertIn('Canción agregada a tu lista de reproducción exitosamente.', success_message.text)
+
+    def test_delete_song_from_playlist(self):
+        case_id = 10  # Actualiza con el ID del caso de prueba en TestRail
         try:
-            self.driver.get('http://localhost:5000/search')
+            self.driver.get('http://localhost:5000/playlist')
 
-            search_box = self.driver.find_element(By.NAME, 'song_name')
-            search_box.send_keys('I Still Miss Someone')
-            search_box.send_keys(Keys.RETURN)
+            # Verificar si la playlist está vacía y añadir una canción de prueba si es necesario
+            songs = self.driver.find_elements(By.CLASS_NAME, 'card')
+            if not songs:
+                self.add_test_song_to_playlist()
+                self.driver.get('http://localhost:5000/playlist')
+                songs = self.driver.find_elements(By.CLASS_NAME, 'card')
 
-            # Esperamos a que el botón "Like" sea visible y luego lo hacemos clic:
-            like_button = WebDriverWait(self.driver, 20).until(
-                EC.element_to_be_clickable((By.XPATH, "//button[text()='Like']"))
+            # Suponemos que hay al menos una canción en la playlist para eliminar
+            delete_button = WebDriverWait(self.driver, 20).until(
+                EC.element_to_be_clickable((By.XPATH, "//button[text()='Delete']"))
             )
-            like_button.click()
+            delete_button.click()
 
             # Esperamos a que aparezca el mensaje de éxito y verificamos su texto:
             success_message = WebDriverWait(self.driver, 20).until(
-                EC.visibility_of_element_located((By.CLASS_NAME, 'alert-message'))
+                EC.visibility_of_element_located((By.CLASS_NAME, 'alert-warning'))
             )
-            self.assertIn('Canción agregada a tu lista de reproducción exitosamente.', success_message.text)
+            self.assertIn('Canción eliminada de tu lista de reproducción.', success_message.text)
             self.send_result_to_testrail(case_id, 1, 'Prueba exitosa')
 
         except TimeoutException:
@@ -105,36 +125,6 @@ class TestAddMusic(unittest.TestCase):
             print(self.driver.page_source)
             self.send_result_to_testrail(case_id, 5, 'El mensaje de éxito no apareció a tiempo')
             self.fail("El mensaje de éxito no apareció a tiempo")
-
-
-    def test_add_existing_song_to_playlist(self):
-        case_id = 8  # Actualiza con el ID del caso de prueba en TestRail
-        try:
-            self.driver.get('http://localhost:5000/search')
-
-            search_box = self.driver.find_element(By.NAME, 'song_name')
-            search_box.send_keys('Shape of You')
-            search_box.send_keys(Keys.RETURN)
-
-            # Esperamos a que el botón "Like" sea visible y luego lo hacemos clic:
-            like_button = WebDriverWait(self.driver, 20).until(
-                EC.element_to_be_clickable((By.XPATH, "//button[text()='Like']"))
-            )
-            like_button.click()
-
-            # Esperamos a que aparezca el mensaje de error y verificamos su texto:
-            error_message = WebDriverWait(self.driver, 20).until(
-                EC.visibility_of_element_located((By.CLASS_NAME, 'alert-message'))
-            )
-            self.assertIn('Esta canción ya está en tu lista de reproducción.', error_message.text)
-            self.send_result_to_testrail(case_id, 1, 'Prueba exitosa')
-
-        except TimeoutException:
-            # En caso de que falle, imprimimos el HTML de la página actual para ayudar a depurar
-            print(self.driver.page_source)
-            self.send_result_to_testrail(case_id, 5, 'El mensaje de error no apareció a tiempo')
-            self.fail("El mensaje de error no apareció a tiempo")
-
 
 if __name__ == '__main__':
     unittest.main()

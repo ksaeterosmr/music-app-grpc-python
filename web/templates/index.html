@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Music app featuring the latest songs and albums.">
+    <meta name="keywords" content="Music, Albums, Songs, Playlist">
+    <meta name="author" content="Music_Web">
     <title>Music App</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link href="../static/style.css" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <!-- Navigation bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <a class="navbar-brand" href="#">Music_Web</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -31,36 +35,30 @@
             </ul>
         </div>
     </nav>
-    <div class="container">
-        <div class="header">
-            <h1>Music App</h1>
-        </div>
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <h2>Featured Albums</h2>
-                <div class="row">
-                    {% for album in albums %}
-                    <div class="col-md-4">
-                        <div class="card mb-4">
-                            <img src="{{ album.album_image }}" class="card-img-top" alt="Album Art">
-                            <div class="card-body">
-                                <h5 class="card-title">{{ album.album_name }}</h5>
-                                <p class="card-text">{{ album.artist }}</p>
-                            </div>
+    
+    <div class="container my-5">
+        <h2 class="text-center my-4">Álbumes destacados</h2>
+        <div class="row">
+            {% for album in albums %}
+            <div class="col-md-4 mb-4">
+                <div class="album-container">
+                    <img src="{{ album.album_image }}" class="img-fluid" alt="Album Art">
+                    <div class="album-overlay">
+                        <div class="album-info">
+                            <h5>{{ album.album_name }}</h5>
+                            <p>{{ album.artist }}</p>
                         </div>
                     </div>
-                    {% endfor %}
-                </div>
-                <div class="text-center mt-4">
-                    <a href="{{ url_for('playlist') }}" class="view-playlist-btn">View Playlist</a>
                 </div>
             </div>
+            {% endfor %}
         </div>
+        
         {% if song %}
         <div class="row justify-content-center mt-5">
             <div class="col-md-8">
                 <div class="song-info">
-                    <img src="{{ song.album_image }}" alt="Album Art">
+                    <img src="{{ song.album_image }}" alt="Album Art" loading="lazy">
                     <div class="song-details">
                         <h2>{{ song.song_name }}</h2>
                         <h4>{{ song.artist }}</h4>
@@ -83,6 +81,11 @@
         </div>
         {% endif %}
     </div>
+    
+    <footer class="footer">
+        <p>&copy; 2024 Music_Web. All rights reserved.</p>
+    </footer>
+    
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>

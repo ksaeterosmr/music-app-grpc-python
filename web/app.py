@@ -4,16 +4,22 @@ import os
 # Añadir el directorio raíz del proyecto al PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+
 from flask import Flask, flash, render_template, request, redirect, send_from_directory, url_for
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from client.client import get_song, get_featured_albums
 from web.models import User, db, Playlist, Song
+import logging
 
+# Configuración del logging
+logging.basicConfig(level=logging.INFO)
+
+# Configuración de la aplicación
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123@localhost/music_app'  # Actualiza con tus credenciales
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://postgres:123@localhost/music_app')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = '123'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', '123')
 
 db.init_app(app)
 
@@ -41,8 +47,6 @@ def index():
 
     return render_template('index.html', song=song, albums=albums)
 
-
-#Añadir funcionalidad para obtener una música
 @app.route('/search', methods=['GET', 'POST'])
 @login_required
 def search():
@@ -50,9 +54,15 @@ def search():
     if request.method == 'POST':
         song_name = request.form['song_name']
         song = get_song(song_name)
+
+        if song:
+            flash('Canción encontrada.', 'success')  # Mensaje de éxito
+        else:
+            flash('No se encontró la canción.', 'error')  # Mensaje de error
+
     return render_template('search.html', song=song)
 
-#Añadir funcionalidad para dar like a una música
+
 @app.route('/like', methods=['POST'])
 @login_required
 def like():
@@ -71,13 +81,13 @@ def like():
 
     # Verifica si la canción ya existe en la lista de reproducción
     existing_song = Song.query.filter_by(
-        playlist_id=playlist.id, 
-        song_name=song_name, 
+        playlist_id=playlist.id,
+        song_name=song_name,
         artist=artist
     ).first()
 
     if existing_song:
-        flash('This song is already in your playlist.')
+        flash('Esta canción ya está en tu lista de reproducción.')
         return redirect(url_for('search'))
 
     # Agrega la nueva canción a la lista de reproducción
@@ -91,11 +101,10 @@ def like():
     )
     db.session.add(new_song)
     db.session.commit()
-    
-    flash('Song added to your playlist successfully!')
+
+    flash('Canción agregada a tu lista de reproducción exitosamente.')
     return redirect(url_for('search'))
 
-#Funcionalidad para mostrar el playlist de músicas
 @app.route('/playlist')
 @login_required
 def playlist():
@@ -103,7 +112,6 @@ def playlist():
     songs = playlist.songs if playlist else []
     return render_template('playlist.html', songs=songs)
 
-#Funcionalidad para el inicio de sesión
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -114,7 +122,7 @@ def login():
             login_user(user)
             return redirect(url_for('index'))
         else:
-            flash('Inválido usuario o contraseña incorrecta')
+            flash('Usuario o contraseña incorrecta.')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -123,7 +131,6 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-#Funcionalidad para registrarse
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -134,19 +141,18 @@ def register():
         existing_user_by_email = User.query.filter_by(email=email).first()
 
         if existing_user_by_username:
-            flash('Ya existe un usuario con ese nombre')
+            flash('Ya existe un usuario con ese nombre.')
         elif existing_user_by_email:
-            flash('Ya existe un usuario con ese email')
+            flash('Ya existe un usuario con ese email.')
         else:
             user = User(username=username, email=email)
             user.set_password(password)
             db.session.add(user)
             db.session.commit()
-            flash('Registro correcto, Inice Sesión.')
+            flash('Registro exitoso, por favor inicia sesión.')
             return redirect(url_for('login'))
     return render_template('register.html')
 
-#Funcionalidad para eliminar una música
 @app.route('/delete/<int:song_id>', methods=['POST'])
 @login_required
 def delete_song(song_id):
@@ -154,7 +160,9 @@ def delete_song(song_id):
     if song.playlist.user_id == current_user.id:  # Verificar que la canción pertenece al usuario
         db.session.delete(song)
         db.session.commit()
+        flash('Canción eliminada de tu lista de reproducción.')
     return redirect(url_for('playlist'))
+
 
 @app.route('/<path:path>')
 def send_static(path):
@@ -164,4 +172,3 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(debug=True)
-
